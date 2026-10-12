@@ -1,0 +1,114 @@
+# A ClusterClass for k3s on an Unraid server: one privileged, host-network
+# rancher/k3s container started over SSH — the same container
+# hyve-unraid-k3s-module creates. One cluster per Unraid server.
+#
+# Needs a Secret (default name unraid-ssh) in the namespace with `username`
+# and `password` (or `privateKey`). herd reads the annotations (default
+# Kubernetes version).
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: ClusterClass
+metadata:
+  name: unraid
+  annotations:
+    herd.io/default-version: v1.34.8
+spec:
+  infrastructure:
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+      kind: UnraidClusterTemplate
+      name: unraid
+  controlPlane:
+    templateRef:
+      apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+      kind: UnraidControlPlaneTemplate
+      name: unraid
+  variables:
+    - name: host
+      required: true
+      schema:
+        openAPIV3Schema: {type: string, minLength: 1, description: The Unraid server's LAN IP or hostname.}
+    - name: sshPort
+      required: false
+      schema:
+        openAPIV3Schema: {type: integer, default: 22}
+    - name: credentialsSecret
+      required: false
+      schema:
+        openAPIV3Schema: {type: string, default: unraid-ssh, description: Secret with username and password (or privateKey).}
+    - name: containerName
+      required: false
+      schema:
+        openAPIV3Schema: {type: string, default: k3s}
+    - name: dataPath
+      required: false
+      schema:
+        openAPIV3Schema: {type: string, default: /mnt/cache/appdata}
+    - name: mountShares
+      required: false
+      schema:
+        openAPIV3Schema: {type: boolean, default: true, description: Mount /mnt/user into the container.}
+    - name: dockerSocket
+      required: false
+      schema:
+        openAPIV3Schema: {type: boolean, default: false, description: Mount the server's Docker socket (what Cluster API's Docker provider needs).}
+    - name: registryMirrors
+      required: false
+      schema:
+        openAPIV3Schema:
+          type: object
+          default: {}
+          additionalProperties: {type: array, items: {type: string}}
+    - name: deletePolicy
+      required: false
+      schema:
+        openAPIV3Schema: {type: string, enum: [Keep, Delete], default: Keep}
+  patches:
+    - name: server
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+            kind: UnraidClusterTemplate
+            matchResources: {infrastructureCluster: true}
+          jsonPatches:
+            - {op: replace, path: /spec/template/spec/host, valueFrom: {variable: host}}
+            - {op: replace, path: /spec/template/spec/sshPort, valueFrom: {variable: sshPort}}
+            - {op: replace, path: /spec/template/spec/credentialsRef/name, valueFrom: {variable: credentialsSecret}}
+    - name: k3s
+      definitions:
+        - selector:
+            apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+            kind: UnraidControlPlaneTemplate
+            matchResources: {controlPlane: true}
+          jsonPatches:
+            - {op: replace, path: /spec/template/spec/containerName, valueFrom: {variable: containerName}}
+            - {op: replace, path: /spec/template/spec/dataPath, valueFrom: {variable: dataPath}}
+            - {op: replace, path: /spec/template/spec/mountShares, valueFrom: {variable: mountShares}}
+            - {op: replace, path: /spec/template/spec/dockerSocket, valueFrom: {variable: dockerSocket}}
+            - {op: replace, path: /spec/template/spec/registryMirrors, valueFrom: {variable: registryMirrors}}
+            - {op: replace, path: /spec/template/spec/deletePolicy, valueFrom: {variable: deletePolicy}}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: UnraidClusterTemplate
+metadata:
+  name: unraid
+spec:
+  template:
+    spec:
+      host: set-by-the-host-variable
+      sshPort: 22
+      credentialsRef: {name: unraid-ssh}
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: UnraidControlPlaneTemplate
+metadata:
+  name: unraid
+spec:
+  template:
+    spec:
+      containerName: k3s
+      dataPath: /mnt/cache/appdata
+      mountShares: true
+      dockerSocket: false
+      disable: [traefik]
+      registryMirrors: {}
+      deletePolicy: Keep

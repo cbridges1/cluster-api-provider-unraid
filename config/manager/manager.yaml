@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: capu-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: capu-manager
+  namespace: capu-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: capu-manager
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: capu-manager-role
+subjects:
+  - kind: ServiceAccount
+    name: capu-manager
+    namespace: capu-system
+---
+# Lets Cluster API's core controllers manage this provider's kinds.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: capu-aggregated-manager-role
+  labels:
+    cluster.x-k8s.io/aggregate-to-manager: "true"
+rules:
+  - apiGroups: [infrastructure.cluster.x-k8s.io]
+    resources: [unraidclusters, unraidclustertemplates, unraidcontrolplanes, unraidcontrolplanetemplates]
+    verbs: [create, delete, get, list, patch, update, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: capu-leader-election
+  namespace: capu-system
+rules:
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [events]
+    verbs: [create, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: capu-leader-election
+  namespace: capu-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: capu-leader-election
+subjects:
+  - kind: ServiceAccount
+    name: capu-manager
+    namespace: capu-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: capu-controller-manager
+  namespace: capu-system
+  labels: {control-plane: capu-controller-manager}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {control-plane: capu-controller-manager}
+  template:
+    metadata:
+      labels: {control-plane: capu-controller-manager}
+    spec:
+      serviceAccountName: capu-manager
+      containers:
+        - name: manager
+          image: IMAGE
+          args: [--leader-elect]
+          ports:
+            - {name: healthz, containerPort: 8081}
+          readinessProbe:
+            httpGet: {path: /readyz, port: healthz}
+          livenessProbe:
+            httpGet: {path: /healthz, port: healthz}
+          resources:
+            requests: {cpu: 10m, memory: 48Mi}
+            limits: {memory: 256Mi}
+          securityContext:
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
