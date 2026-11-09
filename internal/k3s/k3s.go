@@ -1,6 +1,5 @@
 // Package k3s builds the shell commands that run a k3s server as a Docker
-// container on an Unraid server — the same container hyve-unraid-k3s-module
-// creates.
+// container on an Unraid server.
 package k3s
 
 import (

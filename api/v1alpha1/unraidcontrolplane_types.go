@@ -8,9 +8,9 @@ const (
 	DeletePolicyDelete = "Delete"
 )
 
-// UnraidControlPlaneSpec is the k3s server container: the same `docker run`
-// hyve-unraid-k3s-module uses — privileged, host network, the server's
-// shares mounted in — so one Unraid server runs one such cluster.
+// UnraidControlPlaneSpec is the k3s server container: privileged, host
+// network, the server's shares mounted in — so one Unraid server runs one
+// such cluster.
 type UnraidControlPlaneSpec struct {
 	// version is the Kubernetes version (set from the Cluster's topology),
 	// e.g. v1.34.8. The image is rancher/k3s:<version>-k3s1 unless image is set.

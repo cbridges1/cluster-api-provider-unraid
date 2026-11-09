@@ -2,10 +2,10 @@
 
 A [Cluster API](https://cluster-api.sigs.k8s.io) provider for k3s on an
 [Unraid](https://unraid.net) server. Over SSH it runs one privileged,
-host-network `rancher/k3s` container with the server's shares mounted in —
-the same container [hyve-unraid-k3s-module](https://github.com/cbridges1/hyve-unraid-k3s-module)
-creates — and publishes the cluster's kubeconfig for Cluster API. Works with
-[Rancher Turtles](https://turtles.docs.rancher.com) and [herd](https://github.com/cbridges1/herd).
+host-network `rancher/k3s` container with the server's shares mounted in,
+and publishes the cluster's kubeconfig for Cluster API. Works with
+clusterctl, the Cluster API Operator and
+[Rancher Turtles](https://turtles.docs.rancher.com).
 
 One cluster per Unraid server: the container uses the host network, so a
 second k3s would collide on its ports. The provider refuses to start one
@@ -38,12 +38,22 @@ spec:
     url: https://github.com/cbridges1/cluster-api-provider-unraid/releases/v0.1.0/infrastructure-components.yaml
 ```
 
-Then a Secret and a cluster (with herd):
+Then a Secret, the ClusterClass and a cluster:
 
 ```bash
 kubectl -n capi-clusters create secret generic unraid-ssh --from-literal=username=root --from-literal=password=...
 kubectl -n capi-clusters apply -f templates/clusterclass-unraid.yaml
-herd cluster create media --class unraid --set host=192.168.50.20
+kubectl apply -f - <<EOF
+apiVersion: cluster.x-k8s.io/v1beta2
+kind: Cluster
+metadata: {name: media, namespace: capi-clusters}
+spec:
+  topology:
+    classRef: {name: unraid}
+    version: v1.34.8
+    variables:
+      - {name: host, value: 192.168.50.20}
+EOF
 ```
 
 ## Develop

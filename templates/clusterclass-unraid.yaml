@@ -1,16 +1,12 @@
 # A ClusterClass for k3s on an Unraid server: one privileged, host-network
-# rancher/k3s container started over SSH — the same container
-# hyve-unraid-k3s-module creates. One cluster per Unraid server.
+# rancher/k3s container started over SSH. One cluster per Unraid server.
 #
 # Needs a Secret (default name unraid-ssh) in the namespace with `username`
-# and `password` (or `privateKey`). herd reads the annotations (default
-# Kubernetes version).
+# and `password` (or `privateKey`).
 apiVersion: cluster.x-k8s.io/v1beta2
 kind: ClusterClass
 metadata:
   name: unraid
-  annotations:
-    herd.io/default-version: v1.34.8
 spec:
   infrastructure:
     templateRef:

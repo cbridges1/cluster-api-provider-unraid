@@ -55,9 +55,9 @@ spec:
             type: object
           spec:
             description: |-
-              UnraidControlPlaneSpec is the k3s server container: the same `docker run`
-              hyve-unraid-k3s-module uses — privileged, host network, the server's
-              shares mounted in — so one Unraid server runs one such cluster.
+              UnraidControlPlaneSpec is the k3s server container: privileged, host
+              network, the server's shares mounted in — so one Unraid server runs one
+              such cluster.
             properties:
               containerName:
                 default: k3s

@@ -9,7 +9,7 @@ import (
 	"github.com/cbridges1/cluster-api-provider-unraid/api/v1alpha1"
 )
 
-func TestRunCommandMatchesTheHyveModule(t *testing.T) {
+func TestRunCommand(t *testing.T) {
 	spec := &v1alpha1.UnraidControlPlaneSpec{Version: "v1.34.8", ContainerName: "unraid-k3s", Disable: []string{"traefik"}, DockerSocket: true}
 	got := RunCommand(spec, "192.168.50.100")
 	for _, want := range []string{
